@@ -9,6 +9,7 @@ import time
 from runwayml import RunwayML
 from openai import OpenAI
 from moviepy import VideoFileClip, concatenate_videoclips, AudioFileClip
+from telegram.request import HTTPXRequest
 
 # API ключи
 TELEGRAM_API_KEY = 'fill'
@@ -321,7 +322,7 @@ async def cancel(update: Update, context: CallbackContext):
 
 
 def main():
-    application = Application.builder().token(TELEGRAM_API_KEY).build()
+    application = Application.builder().token(TELEGRAM_API_KEY).request(HTTPXRequest(connect_timeout=30.0, read_timeout=30.0)).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
