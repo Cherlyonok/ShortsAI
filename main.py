@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 def get_script_from_api(product_name, features, target_audience, duration, tone, notes):
 
     prompt = f"""
-    Create a script for a YouTube Shorts advertisement lasting {duration} seconds for the product: {product_name}.
+    Create a script for a YouTube Shorts advertisement lasting {int(duration)//5} scenes for the product: {product_name}.
     Features: {features}
     Target Audience: {target_audience}
     Tone: {tone}
@@ -102,9 +102,9 @@ def download_video(video_url, save_path):
 
 
 def create_video_with_runway(images, scenes):
-    client = RunwayML(api_key=RUNWAY_API_TOKEN)
     videos = []
     for i in range(len(images)):
+        client = RunwayML(api_key=RUNWAY_API_TOKEN)
         prompt = scenes[i]
         if len(scenes[i]) > 1000:
             prompt = prompt[:999]
@@ -170,19 +170,19 @@ async def target_audience(update: Update, context: CallbackContext):
     context.user_data['target_audience'] = update.message.text
     await update.message.reply_text(
         "Опишите общее настроение ролика, которое вы хотите создать. (например, легкий мотивирующий ролик или серьезная реклама)")
-    return DURATION
+    return TONE
 
 
 async def duration(update: Update, context: CallbackContext):
     context.user_data['duration'] = update.message.text
-    await update.message.reply_text("Сколько секунд должен длиться ролик? (от 10 до 60)")
-    return TONE
+    await update.message.reply_text("Есть ли какие-то особые пожелания для сценария?")
+    return NOTES
 
 
 async def tone(update: Update, context: CallbackContext):
     context.user_data['tone'] = update.message.text
-    await update.message.reply_text("Есть ли какие-то особые пожелания для сценария?")
-    return NOTES
+    await update.message.reply_text("Сколько секунд должен длиться ролик? (от 10 до 60)")
+    return DURATION
 
 
 async def notes(update: Update, context: CallbackContext):
@@ -236,10 +236,12 @@ async def generate_shorts(update: Update, context: CallbackContext):
         output_image = generate_image_from_scene(scene_description, context.user_data['image_path'])
         images.append(output_image)
 
-    output_path = create_video_with_runway(images, scenes)
+    output_path = create_video_with_runway(images, scenes[1:])
     context.user_data['video_path'] = output_path
 
-    prompt = f"Создай озвучку на русском языке для рекламного ролика со следующим сценарием: {script}. Обязательно учти временные ограничения на длину записи {context.user_data['duration']}"
+    prompt = f"Создай озвучку на русском языке для рекламного ролика со следующим сценарием: {script}. " \
+             f"Обязательно учти временные ограничения на длину записи {context.user_data['duration']}" \
+             f"Выведи ответ без вступления и заключения и без каких-либо организационных слов, просто текст, который надо зачитать."
     client = OpenAI(api_key=OPENAI_API_KEY)
     response = client.responses.create(
         model="gpt-4.1",
